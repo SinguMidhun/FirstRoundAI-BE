@@ -10,6 +10,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import axios from 'axios';
 import {onRequest} from "firebase-functions/v2/https";
+import {onCall} from "firebase-functions/v2/https";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -57,14 +58,14 @@ export const helloWorldMidhun = onRequest((request, response) => {
 });
 
 
-export const evaluateMockInterview = functions.https.onCall(async (data: FunctionData, context) => {
+export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
   // Check if the user is authenticated
-  if (!context.auth) {
+  if (!request.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
   }
 
-  const userId = context.auth.uid;
-  const { docId, interviewData } = data;
+  const userId = request.auth.uid;
+  const { docId, interviewData } = request.data;
   
   try {
     // Start processing the interview for evaluation
