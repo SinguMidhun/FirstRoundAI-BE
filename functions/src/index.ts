@@ -45,7 +45,6 @@ interface InterviewDocModel {
 
 interface FunctionData {
   docId: string;
-  interviewData: InterviewDocModel;
 }
 
 
@@ -65,11 +64,23 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
   }
 
   const userId = request.auth.uid;
-  const { docId, interviewData } = request.data;
+  const { docId } = request.data;
   
   try {
     // Start processing the interview for evaluation
     functions.logger.info('Starting evaluation process', { docId });
+    
+    // Retrieve the document data
+    const docSnapshot = await admin.firestore()
+      .collection(`users/${userId}/archives`)
+      .doc(docId)
+      .get();
+    
+    if (!docSnapshot.exists) {
+      throw new functions.https.HttpsError('not-found', 'Interview document not found');
+    }
+    
+    const interviewData = docSnapshot.data() as InterviewDocModel;
     
     // Update document to indicate processing has started
     await admin.firestore()
