@@ -1,15 +1,7 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import axios from "axios";
-import {onRequest, onCall} from "firebase-functions/v2/https";
+import {onCall} from "firebase-functions/v2/https";
 import express from "express";
 
 // Start writing functions
@@ -50,16 +42,6 @@ interface FunctionData {
   docId: string;
 }
 
-
-export const helloWorld = onRequest((request, response) => {
-  response.send("Hello from Firebase!");
-});
-
-export const helloWorldMidhun = onRequest((request, response) => {
-  response.send("Hello from Midhun!");
-});
-
-
 export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
   // Check if the user is authenticated
   if (!request.auth) {
@@ -69,12 +51,12 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
     );
   }
 
-  const userId = request.auth.uid;
-  const {docId} = request.data;
+  const userId = "EmlxiPsnXqT38FXVm4TCRywzvQq2";
+  const docId = request.data.docId;
 
   try {
     // Start processing the interview for evaluation
-    functions.logger.info("Starting evaluation process", {docId});
+    functions.logger.info("Starting progress evaluation process", {docId});
 
     // Retrieve the document data
     const docRef = `users/${userId}/archives`;
@@ -82,6 +64,8 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
       .collection(docRef)
       .doc(docId)
       .get();
+
+    functions.logger.info("Starting point 2", {docId});
 
     if (!docSnapshot.exists) {
       throw new functions.https.HttpsError(
@@ -101,6 +85,8 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
         "evaluationInProgress": true,
       });
 
+    functions.logger.info("Starting point 3", {docId});
+
     // Process each interview question with DeepSeek API
     const evaluatedQuestions =
       await evaluateInterviewAnswers(interviewData);
@@ -114,6 +100,8 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
         "analysed": true,
         "evaluationInProgress": false,
       });
+
+    functions.logger.info("Starting point 4", {docId});
 
     // Send notification to the user that their evaluation is ready
     await sendEvaluationNotification(userId, docId);
@@ -129,9 +117,10 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
 });
 
 /**
- * Evaluates interview answers using DeepSeek API
- * @param {InterviewDocModel} interviewData - The interview data with questions
- * @return {Promise<InterviewQuestion[]>} Evaluated interview questions
+ * Evaluates the candidate's interview answers using DeepSeek API
+ * @param {InterviewDocModel} interviewData - The interview data containing
+ *        questions and answers
+ * @return {Promise<InterviewQuestion[]>} Array of evaluated interview questions
  */
 async function evaluateInterviewAnswers(
   interviewData: InterviewDocModel
@@ -217,7 +206,7 @@ async function evaluateInterviewAnswers(
 }
 
 /**
- * Sends notification to user that their interview evaluation is ready
+ * Sends a notification to the user when their interview evaluation is ready
  * @param {string} userId - The user's ID
  * @param {string} docId - The document ID of the evaluated interview
  * @return {Promise<void>}
@@ -226,7 +215,6 @@ async function sendEvaluationNotification(
   userId: string,
   docId: string
 ): Promise<void> {
-  // Send to the topic specific to this document
   const message = {
     data: {
       type: "interview_evaluation",
@@ -245,20 +233,6 @@ async function sendEvaluationNotification(
   }
 }
 
-// Express routes for direct Cloud Run deployment
-app.get('/', (req: express.Request, res: express.Response) => {
-  res.send('Hello from Firebase Functions!');
-});
-
-app.get('/hello', (req: express.Request, res: express.Response) => {
-  res.send('Hello from Firebase!');
-});
-
-app.get('/hellomidhun', (req: express.Request, res: express.Response) => {
-  res.send('Hello from Midhun!');
-});
-
-// Cloud Run requires the server to listen on the port specified by the PORT environment variable
 const port = process.env.PORT || 8080;
 if (require.main === module) {
   app.listen(port, () => {
@@ -266,5 +240,4 @@ if (require.main === module) {
   });
 }
 
-// Export the Express app for Cloud Run
 export const expressApp = app;
