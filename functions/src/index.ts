@@ -51,7 +51,7 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
     );
   }
 
-  const userId = "EmlxiPsnXqT38FXVm4TCRywzvQq2";
+  const userId = request.auth.uid;
   const docId = request.data.docId;
 
   try {
