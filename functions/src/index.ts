@@ -1,16 +1,19 @@
+import {onRequest} from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import axios from "axios";
+import * as request from "request-promise";
 import {onCall} from "firebase-functions/v2/https";
-import express from "express";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
 
 admin.initializeApp();
 
-// Create Express app for direct Cloud Run deployment
-const app = express();
+export const helloWorldV2 = onRequest((request, response) => {
+  logger.info("Hello logs!", {structuredData: true});
+  response.send("Hello from Firebase!");
+});
 
 interface InterviewQuestion {
   difficulty: string;
@@ -116,12 +119,6 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
   }
 });
 
-/**
- * Evaluates the candidate's interview answers using DeepSeek API
- * @param {InterviewDocModel} interviewData - The interview data containing
- *        questions and answers
- * @return {Promise<InterviewQuestion[]>} Array of evaluated interview questions
- */
 async function evaluateInterviewAnswers(
   interviewData: InterviewDocModel
 ): Promise<InterviewQuestion[]> {
@@ -167,22 +164,20 @@ async function evaluateInterviewAnswers(
     ];
 
     try {
-      const response = await axios.post(
-        "https://api.deepseek.com/chat/completions",
-        {
+      const response = await request.post({
+        url: "https://api.deepseek.com/chat/completions",
+        json: {
           messages,
           model: "deepseek-chat",
           response_format: {type: "json_object"},
         },
-        {
-          headers: {
-            "Authorization": "Bearer sk-c707e08e61fe4ba2ab4b9f51d1e79410",
-            "Content-Type": "application/json",
-          },
-        }
-      );
+        headers: {
+          "Authorization": "Bearer sk-c707e08e61fe4ba2ab4b9f51d1e79410",
+          "Content-Type": "application/json",
+        },
+      });
 
-      const aiResponse = response.data.choices[0].message.content;
+      const aiResponse = response.choices[0].message.content;
       const evaluation = JSON.parse(aiResponse);
 
       evaluatedQuestions.push({
@@ -205,12 +200,6 @@ async function evaluateInterviewAnswers(
   return evaluatedQuestions;
 }
 
-/**
- * Sends a notification to the user when their interview evaluation is ready
- * @param {string} userId - The user's ID
- * @param {string} docId - The document ID of the evaluated interview
- * @return {Promise<void>}
- */
 async function sendEvaluationNotification(
   userId: string,
   docId: string
@@ -232,12 +221,3 @@ async function sendEvaluationNotification(
     functions.logger.error("Error sending notification", error);
   }
 }
-
-const port = process.env.PORT || 8080;
-if (require.main === module) {
-  app.listen(port, () => {
-    console.log(`Server listening on port ${port}...`);
-  });
-}
-
-export const expressApp = app;
