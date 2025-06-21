@@ -43,6 +43,7 @@ interface InterviewDocModel {
 
 interface FunctionData {
   docId: string;
+  userId: string;
 }
 
 export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
@@ -54,7 +55,7 @@ export const evaluateMockInterview = onCall<FunctionData>(async (request) => {
     );
   }
 
-  const userId = request.auth.uid;
+  const userId = request.data.userId;
   const docId = request.data.docId;
 
   try {
